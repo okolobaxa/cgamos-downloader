@@ -2,6 +2,8 @@
 
 Консольное приложение для скачивания архивных материалов с сайта https://cgamos.ru/
 
+![screenshoot](https://raw.githubusercontent.com/okolobaxa/cgamos-downloader/master/screenshoot.png)
+
 ### Запуск
 Скачиваем программу
 * Windows https://github.com/okolobaxa/cgamos-downloader/releases/download/v0.1/cgamos-windows.zip
