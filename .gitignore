@@ -3,5 +3,6 @@
 
 # But not these files...
 !.gitignore
-!Program.cs
+!*.cs
+!*.png
 !cgamos.csproj

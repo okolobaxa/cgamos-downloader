@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Net;
-using System.Net.Http;
+using System.Reflection;
 using System.Threading.Tasks;
 using CommandLine;
 using Downloader;
@@ -10,32 +10,21 @@ using ShellProgressBar;
 
 namespace cgamos
 {
-    class Program
+    partial class Program
     {
-        public class Options
-        {
-            [Option('f', "fond", Required = false, HelpText = "Fond")]
-            public string Fond { get; set; }
-
-            [Option('o', "opis", Required = false, HelpText = "Opis")]
-            public string Opis { get; set; }
-
-            [Option('d', "delo", Required = false, HelpText = "Delo")]
-            public string Delo { get; set; }
-
-            [Option('p', "path", Required = false, HelpText = "Path")]
-            public string Path { get; set; }
-        }
-
         static async Task Main(string[] args)
         {
             var sw = Stopwatch.StartNew();
+
+            var version = Assembly.GetEntryAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
+            Console.WriteLine($"cgamos-downloader v.{version}");
 
             await Parser.Default.ParseArguments<Options>(args)
                    .WithParsedAsync<Options>(async options =>
                    {
                        ArchiveRecord record;
 
+                       bool silent = false;
                        if (string.IsNullOrEmpty(options.Fond) ||
                             string.IsNullOrEmpty(options.Opis) ||
                             string.IsNullOrEmpty(options.Delo))
@@ -44,17 +33,21 @@ namespace cgamos
                        }
                        else
                        {
-                           record = new ArchiveRecord(options.Fond, options.Opis, options.Delo);
+                           silent = true;
+                           record = new ArchiveRecord(options.Fond, options.Opis, options.Delo, Math.Max((short)1, options.Start), options.End);
                        }
 
-                       await Start(options, record);
+                       await Start(options, record, silent);
 
-                       Console.WriteLine($"Finished in {sw.Elapsed}");
-                       Console.ReadKey();
+                       Console.WriteLine($"Завершено за {sw.Elapsed}");
+                       if (!silent)
+                       {
+                           Console.ReadKey();
+                       }
                    });
         }
 
-        private static async Task Start(Options options, ArchiveRecord record)
+        private static async Task Start(Options options, ArchiveRecord record, bool silent)
         {
             var downloader = new DownloadService(new DownloadConfiguration()
             {
@@ -75,39 +68,59 @@ namespace cgamos
                 CollapseWhenFinished = true
             };
 
-            int currentPage = 1;
-            var maxPageCount = await GetPageCount(record);
-            bool loadNext = true;
+            Console.WriteLine("Поиск дела...");
 
-            var directoryName = string.IsNullOrEmpty(options.Path)
-                 ? $"{Guid.NewGuid()}_{record.Fond}_{record.Opis}_{record.Delo}"
-                 : $"{options.Path}/{Guid.NewGuid()}_{record.Fond}_{record.Opis}_{record.Delo}";
-            try
+            var pageData = await DataParser.GetPageData(record);
+            if (pageData == null)
             {
-                Directory.CreateDirectory(directoryName);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Exception while creading directory {directoryName}; Message={ex.Message}");
-                Console.ReadKey();
+                Console.WriteLine($"Ошибка! Неправильные параметры Фонд #{record.Fond} Опись #{record.Opis} Дело #{record.Delo}");
+                if (!silent)
+                {
+                    Console.ReadKey();
+                }
 
                 return;
             }
 
-            var progressBarString = maxPageCount > 0
-                ? "{0}/{1} Fond #{2} Opis #{3} Delo #{4}"
-                : "Fond #{2} Opis #{3} Delo #{4}";
-
-            using (var mainProgressBar = new ProgressBar(maxPageCount, string.Format(progressBarString, currentPage, maxPageCount, record.Fond, record.Opis, record.Delo), progressBarOptions))
+            if (!record.End.HasValue)
             {
-                while (loadNext)
+                record = record with { End = pageData.PageCount };
+            }
+            
+            var realPageCount = record.End.Value - record.Start + 1;
+
+            var directoryName = string.IsNullOrEmpty(options.Path)
+                 ? $"{record.Fond}_{record.Opis}_{record.Delo}"
+                 : $"{options.Path}/{record.Fond}_{record.Opis}_{record.Delo}";
+            
+            if (!Directory.Exists(directoryName))
+            {
+                try
                 {
-                    string currentPageToken = currentPage.ToString().PadLeft(8, '0');
+                    Directory.CreateDirectory(directoryName);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Exception while creading directory {directoryName}; Message={ex.Message}");
+                    if (!silent)
+                    {
+                        Console.ReadKey();
+                    }
 
-                    var url = $"https://cgamos.ru/images/archive/01-{record.Fond.PadLeft(4, '0')}-{record.Opis.PadLeft(4, '0')}-{record.Delo.PadLeft(6, '0')}/{currentPageToken}.jpg";
-                    var path = $"{directoryName}/{currentPageToken}.jpg";
+                    return;
+                }
+            }
 
-                    var pbar = mainProgressBar.Spawn(100, $"Downloading {url}", progressBarOptions);
+            var progressBarString = "{0}/{1} Фонд #{2} Опись #{3} Дело #{4}";
+            var progressBarStringFormated = string.Format(progressBarString, record.Start, record.End, record.Fond, record.Opis, record.Delo);
+
+            using (var mainProgressBar = new ProgressBar(realPageCount, progressBarStringFormated, progressBarOptions))
+            {
+                for (int i = record.Start; i <= record.End; i++)
+                {
+                    var url = $"https://cgamos.ru{pageData.PageUrls[i-1]}";
+
+                    var pbar = mainProgressBar.Spawn(100, $"Скачивание {url}", progressBarOptions);
 
                     EventHandler<Downloader.DownloadProgressChangedEventArgs> handler = (sender, e) =>
                     {
@@ -119,22 +132,12 @@ namespace cgamos
 
                     try
                     {
+                        var path = $"{directoryName}/{GetFileName(url)}";
+
                         await downloader.DownloadFileTaskAsync(url, path);
 
-                        var progressBarStringFormated = string.Format(progressBarString, currentPage, maxPageCount, record.Fond, record.Opis, record.Delo);
-
-                        mainProgressBar.Tick(progressBarStringFormated);
-                        currentPage++;
-
-                        if (maxPageCount > 0 && currentPage > maxPageCount)
-                        {
-                            loadNext = false;
-                            break;
-                        }
-                    }
-                    catch (WebException)
-                    {
-                        loadNext = false;
+                        progressBarStringFormated = string.Format(progressBarString, i, record.End, record.Fond, record.Opis, record.Delo);
+                        mainProgressBar.Tick(realPageCount - (record.End.Value - i), progressBarStringFormated);
                     }
                     catch (Exception ex)
                     {
@@ -149,79 +152,99 @@ namespace cgamos
             }
         }
 
-        private static async ValueTask<int> GetPageCount(ArchiveRecord record)
+        private static string GetFileName(string url)
         {
-            try
-            {
-                var client = new HttpClient();
-                string url = $"https://cgamos.ru/metric-books/{record.Fond}/{record.Fond}-{record.Opis}/{record.Fond}_{record.Opis}_{record.Delo}/";
-                var body = await client.GetStringAsync(url);
+            var index = url.LastIndexOf('/');
 
-                //<input type="text" class="input-pages" data-max="216 " value="1">
-                var index = body.IndexOf("data-max=\"");
-                if (index == -1)
-                {
-                    Console.WriteLine($"Unable to get total number of pages for url={url}");
-                    return 0;
-                }
-
-                var start = index + "data-max=\"".Length;
-                var end = body.IndexOf(" \"", start);
-
-                var str = body[start..end];
-
-                if (int.TryParse(str.Trim(), out var number))
-                {
-                    return number;
-                }
-
-                return 0;
-            }
-            catch (Exception)
-            {
-                return 0;
-            }
+            return url.Substring(index);
         }
 
         private static ArchiveRecord ParseInput()
         {
-            string fond = null;
-            string opis = null;
-            string delo = null;
+            string fond = ParseStringConsoleInput("Фонд #: ", "Неправильный # фонда");
+            string opis = ParseStringConsoleInput("Опись #: ", "Неправильный # описи");
+            string delo = ParseStringConsoleInput("Дело #: ", "Неправильный # дела");
 
-            while (string.IsNullOrEmpty(fond))
+            short pageStart = 0;
+            short? pageEnd = null;
+
+            bool askMore = true;
+            while (askMore)
             {
-                Console.Write("Fond #: ");
-                fond = Console.ReadLine();
-                if (string.IsNullOrEmpty(fond))
+                Console.Write("Лист с: [Нажмити ENTER если 1] ");
+
+                var input = Console.ReadLine();
+                if (string.IsNullOrEmpty(input))
                 {
-                    Console.WriteLine("Invalid Fond #");
+                    askMore = false;
+                    pageStart = 1;
+                }
+                else
+                {
+                    if (short.TryParse(input, out var number) && number > 0)
+                    {
+                        askMore = false;
+                        pageStart = number;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Неправильный # листа");
+                    }
                 }
             }
 
-            while (string.IsNullOrEmpty(opis))
+            askMore = true;
+            while (askMore)
             {
-                Console.Write("Opis #: ");
-                opis = Console.ReadLine();
-                if (string.IsNullOrEmpty(opis))
+                Console.Write("Лист по: [Нажмите ENTER если все] ");
+
+                var input = Console.ReadLine();
+                if (string.IsNullOrEmpty(input))
                 {
-                    Console.WriteLine("Invalid Opis #");
+                    askMore = false;
+                    pageEnd = null;
+                }
+                else
+                {
+                    if (short.TryParse(input, out var number) && number > 0)
+                    {
+                        askMore = false;
+                        pageEnd = number;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Неправильный # листа");
+                    }
                 }
             }
 
-            while (string.IsNullOrEmpty(delo))
+            return new ArchiveRecord(fond, opis, delo, pageStart, pageEnd);
+        }
+
+        private static string ParseStringConsoleInput(string message, string errorMessage)
+        {
+            bool askMore = true;
+
+            while (askMore)
             {
-                Console.Write("Delo #: ");
-                delo = Console.ReadLine();
-                if (string.IsNullOrEmpty(delo))
+                Console.Write(message); //"Fond #: "
+
+                var input = Console.ReadLine();
+                if (string.IsNullOrEmpty(input) || !short.TryParse(input, out var _))
                 {
-                    Console.WriteLine("Invalid Delo #");
+                    Console.WriteLine(errorMessage); //"Invalid Fond #"
+                }
+                else
+                {
+                    return input;
                 }
             }
 
-            return new ArchiveRecord(fond, opis, delo);
+            return null;
         }
     }
 
-    internal record ArchiveRecord(string Fond, string Opis, string Delo);
+    internal record ArchiveRecord(string Fond, string Opis, string Delo, short Start = 1, short? End = null);
+
+    internal record PageData(string[] PageUrls, short PageCount);
 }
