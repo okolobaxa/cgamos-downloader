@@ -10,7 +10,7 @@ using ShellProgressBar;
 
 namespace cgamos
 {
-    partial class Program
+    public class Program
     {
         static async Task Main(string[] args)
         {
@@ -29,7 +29,7 @@ namespace cgamos
                             string.IsNullOrEmpty(options.Opis) ||
                             string.IsNullOrEmpty(options.Delo))
                        {
-                           record = ParseInput();
+                           record = ConsoleInputParser.ParseInput();
                        }
                        else
                        {
@@ -86,13 +86,13 @@ namespace cgamos
             {
                 record = record with { End = pageData.PageCount };
             }
-            
+
             var realPageCount = record.End.Value - record.Start + 1;
 
             var directoryName = string.IsNullOrEmpty(options.Path)
                  ? $"{record.Fond}_{record.Opis}_{record.Delo}"
                  : $"{options.Path}/{record.Fond}_{record.Opis}_{record.Delo}";
-            
+
             if (!Directory.Exists(directoryName))
             {
                 try
@@ -118,7 +118,7 @@ namespace cgamos
             {
                 for (int i = record.Start; i <= record.End; i++)
                 {
-                    var url = $"https://cgamos.ru{pageData.PageUrls[i-1]}";
+                    var url = $"https://cgamos.ru{pageData.PageUrls[i - 1]}";
 
                     var pbar = mainProgressBar.Spawn(100, $"Скачивание {url}", progressBarOptions);
 
@@ -157,90 +157,6 @@ namespace cgamos
             var index = url.LastIndexOf('/');
 
             return url.Substring(index);
-        }
-
-        private static ArchiveRecord ParseInput()
-        {
-            string fond = ParseStringConsoleInput("Фонд #: ", "Неправильный # фонда");
-            string opis = ParseStringConsoleInput("Опись #: ", "Неправильный # описи");
-            string delo = ParseStringConsoleInput("Дело #: ", "Неправильный # дела");
-
-            short pageStart = 0;
-            short? pageEnd = null;
-
-            bool askMore = true;
-            while (askMore)
-            {
-                Console.Write("Лист с: [Нажмити ENTER если 1] ");
-
-                var input = Console.ReadLine();
-                if (string.IsNullOrEmpty(input))
-                {
-                    askMore = false;
-                    pageStart = 1;
-                }
-                else
-                {
-                    if (short.TryParse(input, out var number) && number > 0)
-                    {
-                        askMore = false;
-                        pageStart = number;
-                    }
-                    else
-                    {
-                        Console.WriteLine("Неправильный # листа");
-                    }
-                }
-            }
-
-            askMore = true;
-            while (askMore)
-            {
-                Console.Write("Лист по: [Нажмите ENTER если все] ");
-
-                var input = Console.ReadLine();
-                if (string.IsNullOrEmpty(input))
-                {
-                    askMore = false;
-                    pageEnd = null;
-                }
-                else
-                {
-                    if (short.TryParse(input, out var number) && number > 0)
-                    {
-                        askMore = false;
-                        pageEnd = number;
-                    }
-                    else
-                    {
-                        Console.WriteLine("Неправильный # листа");
-                    }
-                }
-            }
-
-            return new ArchiveRecord(fond, opis, delo, pageStart, pageEnd);
-        }
-
-        private static string ParseStringConsoleInput(string message, string errorMessage)
-        {
-            bool askMore = true;
-
-            while (askMore)
-            {
-                Console.Write(message); //"Fond #: "
-
-                var input = Console.ReadLine();
-                if (string.IsNullOrEmpty(input) || !short.TryParse(input, out var _))
-                {
-                    Console.WriteLine(errorMessage); //"Invalid Fond #"
-                }
-                else
-                {
-                    return input;
-                }
-            }
-
-            return null;
         }
     }
 

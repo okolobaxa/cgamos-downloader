@@ -2,7 +2,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net50</TargetFramework>
-    <Version>1.1</Version>
+    <Version>1.2</Version>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Downloader" Version="2.2.9"/>

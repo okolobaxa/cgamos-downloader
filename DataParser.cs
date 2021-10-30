@@ -8,7 +8,7 @@ namespace cgamos
 {
     internal static class DataParser
     {
-        private static readonly HashSet<string> MetricBookFonds = new HashSet<string> 
+        private static readonly HashSet<string> MetricBookFonds = new HashSet<string>
         {
             "203", "520", "592", "1607", "1813", "2055", "2121", "2122", "2123", "2124", "2125", "2126", "2127", "2130", "2131", "2132", "2395"
         };
@@ -18,7 +18,7 @@ namespace cgamos
             try
             {
                 var client = new HttpClient();
-                string url = record.Fond switch 
+                string url = record.Fond switch
                 {
                     "203" when record.Opis == "747" => $"https://cgamos.ru/ispovedalnye_vedomosti/{record.Fond}-{record.Opis}-{record.Delo}/",
                     "51" => $"https://cgamos.ru/skazki/{record.Fond}-{record.Opis}-{record.Delo}/",
@@ -27,7 +27,7 @@ namespace cgamos
                     _ when MetricBookFonds.Contains(record.Fond) => $"https://cgamos.ru/metric-books/{record.Fond}/{record.Fond}-{record.Opis}/{record.Fond}_{record.Opis}_{record.Delo}/",
                     _ => throw new ArgumentOutOfRangeException(record.Fond)
                 };
-                
+
                 var body = await client.GetStringAsync(url);
 
                 var pageCount = GetPageCount(body);
@@ -56,7 +56,8 @@ namespace cgamos
             {
                 //<img data-original="/images/archive/01-0203-0780-001091/00000001.jpg" src="/images/archive/01-0203-0780-001091/00000001.jpg" >
                 position = body.IndexOf(token, position + token.Length);
-                if (position == -1) {
+                if (position == -1)
+                {
                     break;
                 }
 
