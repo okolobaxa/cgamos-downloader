@@ -18,3 +18,6 @@ cgamos -f 203 -o 745 -d 16 -s 1 -e 50 -p /Users/antonkheystver/Documents
 ```
 cgamos --fond 203 --opis 745 --delo 16 --start 1 --end 50 --path /Users/antonkheystver/Documents
 ```
+```
+Для MacOS предварительно выполните в скаченной папке команду xattr -r -d com.apple.quarantine ./
+```
