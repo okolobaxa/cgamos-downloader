@@ -87,6 +87,11 @@ namespace cgamos
                 record = record with { End = pageData.PageCount };
             }
 
+            if (record.End > pageData.PageCount)
+            {
+                record = record with { End = pageData.PageCount };
+            }
+
             var realPageCount = record.End.Value - record.Start + 1;
 
             var directoryName = string.IsNullOrEmpty(options.Path)

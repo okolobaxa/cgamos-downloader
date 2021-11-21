@@ -17,8 +17,6 @@ namespace cgamos
 
         private static short? ParseNumberConsoleInput(string message, string errorMessage, short? defaultValue)
         {
-            short? result = null;
-
             while (true)
             {
                 Console.Write(message);
@@ -31,7 +29,7 @@ namespace cgamos
 
                 if (short.TryParse(input, out var number) && number > 0)
                 {
-                    return result;
+                    return number;
                 }
 
                 Console.WriteLine(errorMessage);
