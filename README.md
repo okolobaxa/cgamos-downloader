@@ -6,8 +6,8 @@
 
 ### Запуск
 Скачиваем программу
-* Windows https://github.com/okolobaxa/cgamos-downloader/releases/download/v1.1/cgamos-windows.zip
-* MacOS https://github.com/okolobaxa/cgamos-downloader/releases/download/v1.1/cgamos-macos.zip
+* Windows https://github.com/okolobaxa/cgamos-downloader/releases/download/v1.2/cgamos-windows.zip
+* MacOS https://github.com/okolobaxa/cgamos-downloader/releases/download/v1.2/cgamos-macos.zip
 
 Запустите файл cgamos и следуйте инструкциям.
 
@@ -17,4 +17,8 @@ cgamos -f 203 -o 745 -d 16 -s 1 -e 50 -p /Users/antonkheystver/Documents
 ```
 ```
 cgamos --fond 203 --opis 745 --delo 16 --start 1 --end 50 --path /Users/antonkheystver/Documents
+```
+Для MacOS предварительно выполните в скаченной папке команду 
+```
+xattr -r -d com.apple.quarantine ./
 ```
