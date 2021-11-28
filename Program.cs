@@ -37,9 +37,9 @@ namespace cgamos
                            record = new ArchiveRecord(options.Fond, options.Opis, options.Delo, Math.Max((short)1, options.Start), options.End);
                        }
 
-                       await Start(options, record, silent);
+                       var totalDownloadedSizeInBytes = await Download(options, record, silent);
 
-                       Console.WriteLine($"Завершено за {sw.Elapsed}");
+                       Console.WriteLine($"Завершено за {sw.Elapsed}; Скачено { totalDownloadedSizeInBytes / 1024 / 1024} MB");
                        if (!silent)
                        {
                            Console.ReadKey();
@@ -47,8 +47,10 @@ namespace cgamos
                    });
         }
 
-        private static async Task Start(Options options, ArchiveRecord record, bool silent)
+        private static async Task<long> Download(Options options, ArchiveRecord record, bool silent)
         {
+            long totalDownloadedSize = 0;
+
             var downloader = new DownloadService(new DownloadConfiguration()
             {
                 ChunkCount = 1,
@@ -60,6 +62,13 @@ namespace cgamos
                     KeepAlive = false,
                 }
             });
+
+            EventHandler<Downloader.DownloadStartedEventArgs> onStartHandler = (sender, e) =>
+            {
+                totalDownloadedSize += e.TotalBytesToReceive;
+            };
+
+            downloader.DownloadStarted += onStartHandler;
 
             var progressBarOptions = new ProgressBarOptions
             {
@@ -79,7 +88,7 @@ namespace cgamos
                     Console.ReadKey();
                 }
 
-                return;
+                return 0;
             }
 
             if (!record.End.HasValue)
@@ -112,7 +121,7 @@ namespace cgamos
                         Console.ReadKey();
                     }
 
-                    return;
+                    return 0;
                 }
             }
 
@@ -127,13 +136,13 @@ namespace cgamos
 
                     var pbar = mainProgressBar.Spawn(100, $"Скачивание {url}", progressBarOptions);
 
-                    EventHandler<Downloader.DownloadProgressChangedEventArgs> handler = (sender, e) =>
+                    EventHandler<Downloader.DownloadProgressChangedEventArgs> progressHandler = (sender, e) =>
                     {
                         var persents = (int)Math.Round(e.ProgressPercentage, 0);
                         pbar.Tick(persents);
                     };
 
-                    downloader.DownloadProgressChanged += handler;
+                    downloader.DownloadProgressChanged += progressHandler;
 
                     try
                     {
@@ -150,11 +159,15 @@ namespace cgamos
                     }
                     finally
                     {
-                        downloader.DownloadProgressChanged -= handler;
+                        downloader.DownloadProgressChanged -= progressHandler;
                         pbar.Dispose();
                     }
                 }
             }
+
+            downloader.DownloadStarted -= onStartHandler;
+
+            return totalDownloadedSize;
         }
 
         private static string GetFileName(string url)
