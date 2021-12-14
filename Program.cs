@@ -39,7 +39,7 @@ namespace cgamos
 
                        var totalDownloadedSizeInBytes = await Download(options, record, silent);
 
-                       Console.WriteLine($"Завершено за {sw.Elapsed}; Скачено { totalDownloadedSizeInBytes / 1024 / 1024} MB");
+                       Console.WriteLine($"Завершено за {sw.Elapsed}; Скачано { totalDownloadedSizeInBytes / 1024 / 1024} MB");
                        if (!silent)
                        {
                            Console.ReadKey();
