@@ -13,6 +13,16 @@ namespace cgamos
             "203", "520", "592", "1607", "1813", "2055", "2121", "2122", "2123", "2124", "2125", "2126", "2127", "2130", "2131", "2132", "2395"
         };
 
+        private static readonly HashSet<string> MetricBookCatholicismFonds = new HashSet<string>
+        {
+            "609", "2193", "2197"
+        };
+
+        private static readonly HashSet<string> MetricBookLutheranismFonds = new HashSet<string>
+        {
+            "1476", "1477", "2099"
+        };
+
         public static async ValueTask<PageData> GetPageData(ArchiveRecord record)
         {
             try
@@ -26,6 +36,8 @@ namespace cgamos
                     "2125" => $"https://cgamos.ru/ispovedalnye_vedomosti/{record.Fond}-{record.Opis}-{record.Delo}/",
                     "2372" => $"https://cgamos.ru/inye-konfessii/iudaizm/{record.Fond}-{record.Opis}-{record.Delo}/",
                     _ when MetricBookFonds.Contains(record.Fond) => $"https://cgamos.ru/metric-books/{record.Fond}/{record.Fond}-{record.Opis}/{record.Fond}_{record.Opis}_{record.Delo}/",
+                    _ when MetricBookCatholicismFonds.Contains(record.Fond) => $"https://cgamos.ru/inye-konfessii/catholicism/{record.Fond}-{record.Opis}-{record.Delo}/",
+                    _ when MetricBookLutheranismFonds.Contains(record.Fond) => $"https://cgamos.ru/inye-konfessii/lutheranism/{record.Fond}-{record.Opis}-{record.Delo}/",
                     _ => throw new ArgumentOutOfRangeException(record.Fond)
                 };
 
