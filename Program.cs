@@ -49,6 +49,20 @@ namespace cgamos
 
         private static async Task<long> Download(Options options, ArchiveRecord record, bool silent)
         {
+            Console.WriteLine("Поиск дела...");
+
+            var pageData = await DataParser.GetPageData(record);
+            if (pageData == null)
+            {
+                Console.WriteLine($"Ошибка! Неправильные параметры Фонд #{record.Fond} Опись #{record.Opis} Дело #{record.Delo}");
+                if (!silent)
+                {
+                    Console.ReadKey();
+                }
+
+                return 0;
+            }
+
             long totalDownloadedSize = 0;
 
             var downloader = new DownloadService(new DownloadConfiguration()
@@ -60,6 +74,8 @@ namespace cgamos
                 {
                     AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
                     KeepAlive = false,
+                    UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:95.0) Gecko/20100101 Firefox/95.0",
+                    Referer = pageData.PageMainUrl,
                 }
             });
 
@@ -76,20 +92,7 @@ namespace cgamos
                 ProgressBarOnBottom = true,
                 CollapseWhenFinished = true
             };
-
-            Console.WriteLine("Поиск дела...");
-
-            var pageData = await DataParser.GetPageData(record);
-            if (pageData == null)
-            {
-                Console.WriteLine($"Ошибка! Неправильные параметры Фонд #{record.Fond} Опись #{record.Opis} Дело #{record.Delo}");
-                if (!silent)
-                {
-                    Console.ReadKey();
-                }
-
-                return 0;
-            }
+                        
 
             if (!record.End.HasValue)
             {
@@ -181,5 +184,5 @@ namespace cgamos
 
     internal record ArchiveRecord(string Fond, string Opis, string Delo, short Start = 1, short? End = null);
 
-    internal record PageData(string[] PageUrls, short PageCount);
+    internal record PageData(string[] PageUrls, short PageCount, string PageMainUrl);
 }
