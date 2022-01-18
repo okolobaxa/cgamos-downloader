@@ -146,7 +146,7 @@ namespace cgamos
 
                     try
                     {
-                        var path = $"{directoryName}/{GetFileName(url)}";
+                        var path = $"{directoryName}/{record.Fond}-{record.Opis}-{record.Delo.PadLeft(4, '0')}-{GetFileName(url)}";
 
                         await downloader.DownloadFileTaskAsync(url, path);
 
@@ -172,9 +172,10 @@ namespace cgamos
 
         private static string GetFileName(string url)
         {
+            // '/images/MB_LS/01-0203-0745-000184/00000004.jpg' -> '0004.jpg'
             var index = url.LastIndexOf('/');
 
-            return url.Substring(index);
+            return url.Substring(index + 5).Replace(".JPG", ".jpg");
         }
     }
 
