@@ -8,58 +8,70 @@ namespace cgamos
 {
     internal static class DataParser
     {
-        private static readonly HashSet<string> MetricBookFonds = new HashSet<string>
+        private readonly static string[] Directories = new string[]
         {
-            "203", "520", "592", "1607", "1813", "2055", "2121", "2122", "2123", "2124", "2125", "2126", "2127", "2130", "2131", "2132", "2395"
-        };
-
-        private static readonly HashSet<string> MetricBookCatholicismFonds = new HashSet<string>
-        {
-            "609", "2193", "2197"
-        };
-
-        private static readonly HashSet<string> MetricBookLutheranismFonds = new HashSet<string>
-        {
-            "1476", "1477", "2099"
+            "https://cgamos.ru/metric-books/",
+            "https://cgamos.ru/ispovedalnye_vedomosti/",
+            "https://cgamos.ru/skazki/",
+            "https://cgamos.ru/inye-konfessii/islam/",
+            "https://cgamos.ru/inye-konfessii/iudaizm/",
+            "https://cgamos.ru/inye-konfessii/catholicism/",
+            "https://cgamos.ru/inye-konfessii/lutheranism/"
         };
 
         public static async ValueTask<PageData> GetPageData(ArchiveRecord record)
         {
-            try
+            var client = new HttpClient();
+
+            var urlVariants = GetUrlVariants(record);
+
+            foreach (var urlVariant in urlVariants)
             {
-                var client = new HttpClient();
-                string url = record.Fond switch
+                try
                 {
-                    "203" when record.Opis == "747" => $"https://cgamos.ru/ispovedalnye_vedomosti/{record.Fond}-{record.Opis}-{record.Delo}/",
-                    "51" => $"https://cgamos.ru/skazki/{record.Fond}-{record.Opis}-{record.Delo}/",
-                    "2200" => $"https://cgamos.ru/inye-konfessii/islam/{record.Fond}-{record.Opis}-{record.Delo}/",
-                    "2125" => $"https://cgamos.ru/ispovedalnye_vedomosti/{record.Fond}-{record.Opis}-{record.Delo}/",
-                    "2372" => $"https://cgamos.ru/inye-konfessii/iudaizm/{record.Fond}-{record.Opis}-{record.Delo}/",
-                    _ when MetricBookFonds.Contains(record.Fond) => $"https://cgamos.ru/metric-books/{record.Fond}/{record.Fond}-{record.Opis}/{record.Fond}_{record.Opis}_{record.Delo}/",
-                    _ when MetricBookCatholicismFonds.Contains(record.Fond) => $"https://cgamos.ru/inye-konfessii/catholicism/{record.Fond}-{record.Opis}-{record.Delo}/",
-                    _ when MetricBookLutheranismFonds.Contains(record.Fond) => $"https://cgamos.ru/inye-konfessii/lutheranism/{record.Fond}-{record.Opis}-{record.Delo}/",
-                    _ => throw new ArgumentOutOfRangeException(record.Fond)
-                };
+                    var body = await client.GetStringAsync(urlVariant);
 
-                var body = await client.GetStringAsync(url);
+                    var pageCount = GetPageCount(body);
+                    if (pageCount == 0)
+                    {
+                        continue;
+                    }
 
-                var pageCount = GetPageCount(body);
-                if (pageCount == 0)
+                    var pageUrls = GetPageUrls(body, pageCount);
+
+                    return new PageData(pageUrls.ToArray(), pageCount, urlVariant);
+                }
+                catch (HttpRequestException)
+                {
+                    continue;
+                }
+                catch (Exception)
                 {
                     return null;
                 }
-
-                var urls = GetUrls(body, pageCount);
-
-                return new PageData(urls.ToArray(), pageCount, url);
             }
-            catch (Exception)
-            {
-                return null;
-            }
+
+            return null;
+
         }
 
-        private static IReadOnlyCollection<string> GetUrls(string body, int pageCount)
+        private static IReadOnlyCollection<string> GetUrlVariants(ArchiveRecord record)
+        {
+            var urlVariants = new string[]
+            {
+                $"{record.Fond}-{record.Opis}-{record.Delo}/",
+                $"{record.Fond}_{record.Opis}_{record.Delo}/",
+                $"{record.Fond}/{record.Fond}-{record.Opis}/{record.Fond}_{record.Opis}_{record.Delo}/"
+            };
+
+            var combinations = from directory in Directories
+                               from urlVariant in urlVariants
+                               select $"{directory}{urlVariant}";
+
+            return combinations.ToArray();
+        }
+
+        private static IReadOnlyCollection<string> GetPageUrls(string body, int pageCount)
         {
             var urls = new List<string>(pageCount);
             const string token = "data-original=\"";
