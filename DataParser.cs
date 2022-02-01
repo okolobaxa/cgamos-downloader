@@ -51,7 +51,7 @@ namespace cgamos
 
                 var urls = GetUrls(body, pageCount);
 
-                return new PageData(urls.ToArray(), pageCount);
+                return new PageData(urls.ToArray(), pageCount, url);
             }
             catch (Exception)
             {
