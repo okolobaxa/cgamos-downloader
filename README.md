@@ -6,8 +6,8 @@
 
 ### Запуск
 Скачиваем программу
-* Windows https://github.com/okolobaxa/cgamos-downloader/releases/download/v1.7/cgamos-windows.zip
-* MacOS https://github.com/okolobaxa/cgamos-downloader/releases/download/v1.7/cgamos-macos.zip
+* Windows 8 и выше https://github.com/okolobaxa/cgamos-downloader/releases/download/v1.8/cgamos.1.8.win-x64.zip
+* MacOS https://github.com/okolobaxa/cgamos-downloader/releases/download/v1.8/cgamos.1.8.osx-x64.tar.gz
 
 Запустите файл cgamos и следуйте инструкциям.
 
