@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -135,7 +137,7 @@ namespace cgamos
             {
                 for (int i = record.Start; i <= record.End; i++)
                 {
-                    var url = $"https://cgamos.ru{pageData.PageUrls[i - 1]}";
+                    var url = $"https://cgamos.ru{pageData.PageUrls.ElementAt(i - 1)}";
 
                     var pbar = mainProgressBar.Spawn(100, $"Скачивание {url}", progressBarOptions);
 
@@ -178,11 +180,11 @@ namespace cgamos
             // '/images/MB_LS/01-0203-0745-000184/00000004.jpg' -> '0004.jpg'
             var index = url.LastIndexOf('/');
 
-            return url.Substring(index + 5).Replace(".JPG", ".jpg");
+            return url.Substring(index + 5).ToLowerInvariant();
         }
     }
 
-    internal record ArchiveRecord(string Fond, string Opis, string Delo, short Start = 1, short? End = null);
+    internal record ArchiveRecord(string Fond, string Opis, string Delo, int Start = 1, int? End = null);
 
-    internal record PageData(string[] PageUrls, short PageCount, string PageMainUrl);
+    internal record PageData(IReadOnlyCollection<string> PageUrls, int PageCount, string PageMainUrl);
 }

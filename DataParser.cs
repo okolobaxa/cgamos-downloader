@@ -31,15 +31,9 @@ namespace cgamos
                 {
                     var body = await client.GetStringAsync(urlVariant);
 
-                    var pageCount = GetPageCount(body);
-                    if (pageCount == 0)
-                    {
-                        continue;
-                    }
+                    var pageUrls = GetPageUrls(body);
 
-                    var pageUrls = GetPageUrls(body, pageCount);
-
-                    return new PageData(pageUrls.ToArray(), pageCount, urlVariant);
+                    return new PageData(pageUrls, pageUrls.Count, urlVariant);
                 }
                 catch (HttpRequestException)
                 {
@@ -71,9 +65,9 @@ namespace cgamos
             return combinations.ToArray();
         }
 
-        private static IReadOnlyCollection<string> GetPageUrls(string body, int pageCount)
+        private static IReadOnlyCollection<string> GetPageUrls(string body)
         {
-            var urls = new List<string>(pageCount);
+            var urls = new List<string>();
             const string token = "data-original=\"";
 
             var position = 0;
