@@ -42,16 +42,16 @@ namespace cgamos
 
             while (askMore)
             {
-                Console.Write(message); //"Fond #: "
+                Console.Write(message); // e.g. "Fond #: "
 
                 var input = Console.ReadLine();
                 if (string.IsNullOrEmpty(input) || (validateAsNumber && !short.TryParse(input, out var _)))
                 {
-                    Console.WriteLine(errorMessage); //"Invalid Fond #"
+                    Console.WriteLine(errorMessage); // e.g. "Invalid Fond #"
                 }
                 else
                 {
-                    return input;
+                    return input.Replace(" ", "");
                 }
             }
 
