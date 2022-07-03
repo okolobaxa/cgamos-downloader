@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace cgamos
@@ -17,6 +18,25 @@ namespace cgamos
             "https://cgamos.ru/inye-konfessii/iudaizm/",
             "https://cgamos.ru/inye-konfessii/catholicism/",
             "https://cgamos.ru/inye-konfessii/lutheranism/"
+        };
+
+        private static readonly Dictionary<char, char> ConvertedLetters = new Dictionary<char, char>
+        {
+            // ru to en
+            {'а', 'a'},
+            {'о', 'o'},
+            {'с', 'c'},
+            {'А', 'A'},
+            {'О', 'O'},
+            {'С', 'C'},
+
+            // en to ru
+            {'a', 'а'},
+            {'o', 'о'},
+            {'c', 'с'},
+            {'A', 'А'},
+            {'O', 'О'},
+            {'C', 'С'},
         };
 
         public static async ValueTask<PageData> GetPageData(ArchiveRecord record)
@@ -51,18 +71,61 @@ namespace cgamos
 
         private static IReadOnlyCollection<string> GetUrlVariants(ArchiveRecord record)
         {
-            var urlVariants = new string[]
+            var containtReplacement = TryGetReplacement(record.Delo, out var replacement);
+
+            string[] urlVariants;
+
+            if (containtReplacement)
             {
-                $"{record.Fond}-{record.Opis}-{record.Delo}/",
-                $"{record.Fond}_{record.Opis}_{record.Delo}/",
-                $"{record.Fond}/{record.Fond}-{record.Opis}/{record.Fond}_{record.Opis}_{record.Delo}/"
-            };
+                var sb = new StringBuilder(record.Delo);
+                sb[replacement.position] = replacement.letter;
+                var replaced = sb.ToString();
+
+                urlVariants = new string[]
+                {
+                    $"{record.Fond}-{record.Opis}-{record.Delo}/",
+                    $"{record.Fond}_{record.Opis}_{record.Delo}/",
+                    $"{record.Fond}/{record.Fond}-{record.Opis}/{record.Fond}_{record.Opis}_{record.Delo}/",
+                    
+                    $"{record.Fond}-{record.Opis}-{replaced}/",
+                    $"{record.Fond}_{record.Opis}_{replaced}/",
+                    $"{record.Fond}/{record.Fond}-{record.Opis}/{record.Fond}_{record.Opis}_{replaced}/"
+                };
+            }
+            else
+            {
+                urlVariants = new string[]
+                {
+                    $"{record.Fond}-{record.Opis}-{record.Delo}/",
+                    $"{record.Fond}_{record.Opis}_{record.Delo}/",
+                    $"{record.Fond}/{record.Fond}-{record.Opis}/{record.Fond}_{record.Opis}_{record.Delo}/"
+                };
+            }
+
 
             var combinations = from directory in Directories
                                from urlVariant in urlVariants
                                select $"{directory}{urlVariant}";
 
             return combinations.ToArray();
+        }
+
+        private static bool TryGetReplacement(string str, out (int position, char letter) replacement)
+        {
+            for (int i = 0; i < str.Length; i++)
+            {
+                char ch = str[i];
+
+                if (ConvertedLetters.TryGetValue(ch, out var replacedChar))
+                {
+                    replacement = (i, replacedChar);
+                    return true;
+                }
+            }
+
+            replacement = default;
+
+            return false;
         }
 
         private static IReadOnlyCollection<string> GetPageUrls(string body)
