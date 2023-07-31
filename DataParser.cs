@@ -42,12 +42,15 @@ namespace cgamos
         private static IReadOnlyCollection<string> GetPageUrls(string body)
         {
             var urls = new List<string>();
-            const string token = "data-original=\"";
+            const string token = "<img data-src=\"";
 
             var position = 0;
             while (position >= 0)
             {
-                //<img data-original="/images/archive/01-0203-0780-001091/00000001.jpg" src="/images/archive/01-0203-0780-001091/00000001.jpg" >
+                //<li class="swiper-slide" data-count="5" style="width: 596px; margin-right: 12px;" role="group" aria-label="6 / 1612">
+                //<img data-src="/images/MB_LS/01-0203-0745-001743/00000006.jpg">
+                //</li>
+                
                 position = body.IndexOf(token, position + token.Length);
                 if (position == -1)
                 {
@@ -63,28 +66,6 @@ namespace cgamos
             }
 
             return urls;
-        }
-
-        private static short GetPageCount(string body)
-        {
-            //<input type="text" class="current-picture__num input-pages" data-max="1345 " value="1">
-            var index = body.IndexOf("data-max=\"");
-            if (index == -1)
-            {
-                return 0;
-            }
-
-            var start = index + "data-max=\"".Length;
-            var end = body.IndexOf(" \"", start);
-
-            var str = body[start..end];
-
-            if (short.TryParse(str.Trim(), out var number))
-            {
-                return number;
-            }
-
-            return 0;
         }
     }
 }
