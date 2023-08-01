@@ -2,7 +2,7 @@
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
 		<TargetFramework>net60</TargetFramework>
-		<Version>1.11</Version>
+		<Version>1.12</Version>
 		<IsPackable>false</IsPackable>
 	</PropertyGroup>
 	<ItemGroup>

@@ -42,7 +42,8 @@ namespace cgamos
         private static IReadOnlyCollection<string> GetPageUrls(string body)
         {
             var urls = new List<string>();
-            const string token = "<img data-src=\"";
+            const string dataSrcToken = "<img data-src=\"";
+            const string resizeToken = "resize";
 
             var position = 0;
             while (position >= 0)
@@ -51,17 +52,22 @@ namespace cgamos
                 //<img data-src="/images/MB_LS/01-0203-0745-001743/00000006.jpg">
                 //</li>
                 
-                position = body.IndexOf(token, position + token.Length);
+                position = body.IndexOf(dataSrcToken, position + dataSrcToken.Length);
                 if (position == -1)
                 {
                     break;
                 }
 
-                var start = position + token.Length;
+                var start = position + dataSrcToken.Length;
                 var end = body.IndexOf("\"", start);
 
                 var str = body[start..end];
 
+                if (str.Contains(resizeToken))
+                {
+                    continue;
+                }
+                
                 urls.Add(str);
             }
 
