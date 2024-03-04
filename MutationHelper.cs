@@ -21,7 +21,8 @@ namespace cgamos
         {
             "{0}-{1}-{2}/",
             "{0}_{1}_{2}/",
-            "{0}/{0}-{1}/{0}_{1}_{2}/"
+            "{0}/{0}-{1}/{0}_{1}_{2}/",
+            "{0}/{0}-{1}/{0}-{1}-{2}/"
         };
 
         private static readonly Dictionary<char, char> CharReplacements = new Dictionary<char, char>
@@ -57,7 +58,7 @@ namespace cgamos
         private static IEnumerable<string> Mutate(string directory, string urlTemplate, ArchiveRecord record)
         {
             //add users's input as is
-            yield return $"{directory}/{string.Format(urlTemplate, record.Fond, record.Opis, record.Delo)}";
+            yield return $"{directory}{string.Format(urlTemplate, record.Fond, record.Opis, record.Delo)}";
 
             if (record.Delo.Any(x => char.IsLetter(x)))
             {
@@ -68,17 +69,17 @@ namespace cgamos
                 {
                     //Add low-case variant of replacement (default)
                     sb[langReplacement.position] = langReplacement.letter;
-                    yield return $"{directory}/{string.Format(urlTemplate, record.Fond, record.Opis, sb.ToString())}";
+                    yield return $"{directory}{string.Format(urlTemplate, record.Fond, record.Opis, sb.ToString())}";
 
                     //Add upper-case variant of replacement
                     sb[langReplacement.position] = char.ToUpperInvariant(langReplacement.letter);
-                    yield return $"{directory}/{string.Format(urlTemplate, record.Fond, record.Opis, sb.ToString())}";
+                    yield return $"{directory}{string.Format(urlTemplate, record.Fond, record.Opis, sb.ToString())}";
                 }
                 // add lower <-> upper or upper <-> lower replacements
                 else if (TryGetCaseReplacement(record.Delo, out var caseReplacement))
                 {
                     sb[caseReplacement.position] = caseReplacement.letter;
-                    yield return $"{directory}/{string.Format(urlTemplate, record.Fond, record.Opis, sb.ToString())}";
+                    yield return $"{directory}{string.Format(urlTemplate, record.Fond, record.Opis, sb.ToString())}";
                 }
             }
         }

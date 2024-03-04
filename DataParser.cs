@@ -22,6 +22,10 @@ namespace cgamos
                     var body = await client.GetStringAsync(urlVariant);
 
                     var pageUrls = GetPageUrls(body);
+                    if (!pageUrls.Any())
+                    {
+                        continue;
+                    }
 
                     return new PageData(pageUrls, pageUrls.Count, urlVariant);
                 }
