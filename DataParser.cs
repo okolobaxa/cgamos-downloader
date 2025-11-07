@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 
@@ -8,10 +9,13 @@ namespace cgamos
 {
     internal static class DataParser
     {
-
         public static async ValueTask<PageData> GetPageData(ArchiveRecord record)
         {
-            var client = new HttpClient();
+            var cookieContainer = new CookieContainer();
+            var handler = new HttpClientHandler();
+            handler.CookieContainer = cookieContainer;
+            
+            var client = new HttpClient(handler);
 
             var urlVariants = UrlMutatuinHelper.GetUrlVariants(record).ToArray();
 
@@ -19,7 +23,13 @@ namespace cgamos
             {
                 try
                 {
-                    var body = await client.GetStringAsync(urlVariant);
+                    var response = await client.GetAsync(urlVariant);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        continue;
+                    }
+
+                    var body = await response.Content.ReadAsStringAsync();
 
                     var pageUrls = GetPageUrls(body);
                     if (!pageUrls.Any())
@@ -27,11 +37,9 @@ namespace cgamos
                         continue;
                     }
 
-                    return new PageData(pageUrls, pageUrls.Count, urlVariant);
-                }
-                catch (HttpRequestException)
-                {
-                    continue;
+                    var cookies = cookieContainer.GetCookies(new Uri(urlVariant));
+
+                    return new PageData(pageUrls, pageUrls.Count, urlVariant, cookies);
                 }
                 catch (Exception)
                 {
@@ -46,14 +54,14 @@ namespace cgamos
         private static IReadOnlyCollection<string> GetPageUrls(string body)
         {
             var urls = new List<string>();
-            const string dataSrcToken = "<img data-src=\"";
+            const string dataSrcToken = "<img data-src='";
             const string resizeToken = "resize";
 
             var position = 0;
             while (position >= 0)
             {
-                //<li class="swiper-slide" data-count="5" style="width: 596px; margin-right: 12px;" role="group" aria-label="6 / 1612">
-                //<img data-src="/images/MB_LS/01-0203-0745-001743/00000006.jpg">
+                //<li class='swiper-slide' data-id='00000286' data-count='285'>
+                //<img data-src='/ajax/get_img.php?img_path=RS_LS/01-2199-0001-000027/00000286.jpg' data-lazyload-src='/ajax/get_img.php?img_path=RS_LS/01-2199-0001-000027/00000286.jpg' src='/local/templates/mosarchiv_new/img/tube-spinner.svg' data-lazyload-error-src=''>
                 //</li>
                 
                 position = body.IndexOf(dataSrcToken, position + dataSrcToken.Length);
@@ -63,7 +71,7 @@ namespace cgamos
                 }
 
                 var start = position + dataSrcToken.Length;
-                var end = body.IndexOf("\"", start);
+                var end = body.IndexOf("'", start);
 
                 var str = body[start..end];
 

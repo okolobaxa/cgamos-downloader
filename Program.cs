@@ -66,6 +66,12 @@ namespace cgamos
             }
 
             long totalDownloadedSize = 0;
+            
+            var cookieContainer = new CookieContainer();
+            foreach (var cookie in pageData.Cookies.ToArray())
+            {
+                cookieContainer.Add(cookie);
+            }
 
             var downloader = new DownloadService(new DownloadConfiguration()
             {
@@ -78,6 +84,7 @@ namespace cgamos
                     KeepAlive = false,
                     UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:95.0) Gecko/20100101 Firefox/95.0",
                     Referer = pageData.PageMainUrl,
+                    CookieContainer = cookieContainer
                 }
             });
 
@@ -94,8 +101,7 @@ namespace cgamos
                 ProgressBarOnBottom = true,
                 CollapseWhenFinished = true
             };
-                        
-
+            
             if (!record.End.HasValue)
             {
                 record = record with { End = pageData.PageCount };
@@ -152,8 +158,10 @@ namespace cgamos
                     try
                     {
                         var path = $"{directoryName}/{record.Fond}-{record.Opis}-{record.Delo.PadLeft(4, '0')}-{GetFileName(url)}";
-
-                        await downloader.DownloadFileTaskAsync(url, path);
+                        if (!File.Exists(path))
+                        {
+                            await downloader.DownloadFileTaskAsync(url, path);
+                        }
 
                         progressBarStringFormated = string.Format(progressBarString, i, record.End, record.Fond, record.Opis, record.Delo);
                         mainProgressBar.Tick(realPageCount - (record.End.Value - i), progressBarStringFormated);
@@ -186,5 +194,5 @@ namespace cgamos
 
     internal record ArchiveRecord(string Fond, string Opis, string Delo, int Start = 1, int? End = null);
 
-    internal record PageData(IReadOnlyCollection<string> PageUrls, int PageCount, string PageMainUrl);
+    internal record PageData(IReadOnlyCollection<string> PageUrls, int PageCount, string PageMainUrl, CookieCollection Cookies);
 }
